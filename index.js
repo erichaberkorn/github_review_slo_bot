@@ -1,4 +1,5 @@
 const { request } = require("@octokit/request");
+const { IncomingWebhook } = require("@slack/webhook");
 const {
   formatDistanceToNow,
   parseJSON,
@@ -12,8 +13,11 @@ const repo = process.env.REPO;
 const teamIdentifier = process.env.TEAM_IDENTIFIER;
 const warnThresholdInHours = process.env.WARN_THRESHOLD_IN_HOURS;
 const sloThresholdInHours = process.env.SLO_THRESHOLD_IN_HOURS;
+const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
 const sloCutoff = subHours(new Date(), sloThresholdInHours);
 const warnCutoff = subHours(new Date(), warnThresholdInHours);
+
+const slackWebhook = new IncomingWebhook(slackWebhookUrl);
 
 const headers = {
   authorization: `token ${auth}`,
@@ -56,6 +60,26 @@ const maxReviewRequestTimestamp = async (owner, repo, number) => {
   }, "");
 };
 
+const formatOutput = (pullRequests) => {
+  const output = [`*${repo} reviews*`];
+  pullRequests
+    .filter(({ timestamp }) => isBefore(timestamp, warnCutoff))
+    .sort((a, b) => a.timestamp - b.timestamp)
+    .forEach((pr) =>
+      output.push(
+        `${pr.sloViolated ? ":rotating_light:" : ":warning:"} <${pr.url}|${
+          pr.title
+        }> - ${pr.age}`
+      )
+    );
+  return output.join("\n");
+};
+
+const sendWebhook = (messageText) =>
+  slackWebhook.send({
+    text: messageText,
+  });
+
 const doIt = async ({ owner, repo }) => {
   const pullRequests = await fetchPullRequests(owner, repo);
   const byTimestamp = await Promise.all(
@@ -74,18 +98,7 @@ const doIt = async ({ owner, repo }) => {
         };
       })
   );
-  const output = [`*${repo} reviews*`];
-  byTimestamp
-    .filter(({ timestamp }) => isBefore(timestamp, warnCutoff))
-    .sort((a, b) => a.timestamp - b.timestamp)
-    .forEach((pr) =>
-      output.push(
-        `${pr.sloViolated ? ":rotating_light:" : ":warning:"} <${pr.url}|${
-          pr.title
-        }> - ${pr.age}`
-      )
-    );
-  console.log(output.join("\n"));
+  sendWebhook(formatOutput(byTimestamp));
 };
 
 doIt({ owner, repo });

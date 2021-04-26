@@ -9,6 +9,7 @@
   "author": "",
   "license": "BSD-3-Clause",
   "dependencies": {
+    "@slack/webhook": "^6.0.0",
     "date-fns": "^2.21.1",
     "octokit": "^1.0.3"
   }
