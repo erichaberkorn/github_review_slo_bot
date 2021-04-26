@@ -1,0 +1,15 @@
+{
+  "name": "github_review_slo_bot",
+  "version": "0.0.1",
+  "description": "A slack bot that notifies teams when they are almost violating their project's review time SLO",
+  "main": "index.js",
+  "scripts": {
+    "warn": "node index.js"
+  },
+  "author": "",
+  "license": "BSD-3-Clause",
+  "dependencies": {
+    "date-fns": "^2.21.1",
+    "octokit": "^1.0.3"
+  }
+}
